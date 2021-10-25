@@ -16,14 +16,6 @@ class RecordType:
     StayedAtHome = 3
 
 
-# string value of enum RecordType
-record_type_strings = {
-    RecordType.LeftWork: 'left work',
-    RecordType.CameToWork: 'came to work',
-    RecordType.StayedAtHome: 'stayed at home',
-}
-
-
 # function to handle the /start command
 def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -73,7 +65,7 @@ def stay(update: Update, context: CallbackContext) -> None:
         time_stamp=update.message.date,
         record_type=RecordType.StayedAtHome)
     update.message.chat.send_message(
-        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :house: :thumbsup:', use_aliases=True),
+        get_confirmation_msg(user_id, first_name, RecordType.StayedAtHome),
         parse_mode=ParseMode.HTML)
 
 
@@ -89,7 +81,7 @@ def came(update: Update, context: CallbackContext) -> None:
         time_stamp=update.message.date,
         record_type=RecordType.CameToWork)
     update.message.chat.send_message(
-        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :office: :thumbsup:', use_aliases=True),
+        get_confirmation_msg(user_id, first_name, RecordType.CameToWork),
         parse_mode=ParseMode.HTML)
 
 
@@ -105,7 +97,7 @@ def left(update: Update, context: CallbackContext) -> None:
         time_stamp=update.message.date,
         record_type=RecordType.LeftWork)
     update.message.chat.send_message(
-        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :house: :thumbsup:', use_aliases=True),
+        get_confirmation_msg(user_id, first_name, RecordType.LeftWork),
         parse_mode=ParseMode.HTML)
 
 
@@ -120,16 +112,21 @@ def stats(update: Update, context: CallbackContext) -> None:
 
 # function to handle the /menu command
 def menu(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
     keyboard = [
         [
             InlineKeyboardButton("Came to work", callback_data=RecordType.CameToWork),
             InlineKeyboardButton("Left work", callback_data=RecordType.LeftWork),
             InlineKeyboardButton("Stayed at home", callback_data=RecordType.StayedAtHome),
         ],
-        [InlineKeyboardButton("Stats", callback_data='stats')],
+        [InlineKeyboardButton("Display stats", callback_data='stats')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Please choose:', reply_markup=reply_markup)
+    update.message.chat.send_message(
+        f'<a href="tg://user?id={user_id}">{first_name}</a>, please choose one option:',
+        parse_mode=ParseMode.HTML,
+        reply_markup=reply_markup)
 
 
 # function to handle buttons
@@ -144,21 +141,29 @@ def button(update: Update, context: CallbackContext) -> None:
     user_id = query.from_user.id
     user_name = query.from_user.first_name
 
-    # query.edit_message_text(text=f"Selected option: {query.data}")
-    if query.data == 'stats':
-        query.edit_message_text(text='Stats will be show below.')
-        msg = get_stats_formatted_for_chat(query.message.chat.id)
-        query.message.reply_html(msg)
-    elif query.data.isdigit():
-        type_str = record_type_strings[int(query.data)]
-        storage.update_record(
-            chat_id=query.message.chat.id,
-            user_id=user_id,
-            user_name=user_name,
-            time_stamp=query.message.date,
-            record_type=int(query.data))
-        msg = f'{user_name}, you {type_str}'
-        query.edit_message_text(text=msg)
+    match query.data:
+        case 'stats':
+            msg = get_stats_formatted_for_chat(query.message.chat.id)
+            query.edit_message_text(
+                text=msg,
+                parse_mode=ParseMode.HTML,
+                reply_markup=None)
+        case '...':
+            pass
+        case _:
+            if query.data.isdigit():
+                record_type = int(query.data)
+                storage.update_record(
+                    chat_id=query.message.chat.id,
+                    user_id=user_id,
+                    user_name=user_name,
+                    time_stamp=query.message.date,
+                    record_type=record_type)
+                msg = get_confirmation_msg(user_id, user_name, record_type)
+                query.edit_message_reply_markup(None)
+                query.edit_message_text(
+                    text=msg,
+                    parse_mode=ParseMode.HTML)
 
 
 # echo test
@@ -171,14 +176,13 @@ def format_record(record) -> str:
     # 0 - user_id, 1 - user_name, 2 - time_stamp, 3 - record_type
     msg = f'<a href="tg://user?id={record[0]}">{record[1]}</a> ';
 
-    # match record[3]:
-    #    case RecordType.CameToWork:
-    #        msg += 'came'
-    #    case RecordType.LeftWork:
-    #        msg += 'left'
-    #    case RecordType.StayedAtHome:
-    #        msg += 'stayed at home'
-    msg += record_type_strings[record[3]]
+    match record[3]:
+        case RecordType.CameToWork:
+            msg += 'came to work'
+        case RecordType.LeftWork:
+            msg += 'has left work'
+        case RecordType.StayedAtHome:
+            msg += 'stayed at home'
 
     msg += f'\n<i>{record[2]}</i>'
     return msg
@@ -201,4 +205,21 @@ def get_stats_formatted_for_chat(chat_id) -> str:
         if work != "":
             msg += "\n"
         msg += "<b>At home</b> :house:\n" + home
-    return msg
+    return emojize(
+        msg,
+        use_aliases=True)
+
+
+# get user confirmation message in html format (with emoji)
+def get_confirmation_msg(user_id: int, user_name: str, record_type: RecordType) -> str:
+    match record_type:
+        case RecordType.CameToWork:
+            return emojize(
+                f'<a href="tg://user?id={user_id}">{user_name}</a> :office: :thumbsup:',
+                use_aliases=True)
+        case RecordType.LeftWork | RecordType.StayedAtHome:
+            return emojize(
+                f'<a href="tg://user?id={user_id}">{user_name}</a> :house: :thumbsup:',
+                use_aliases=True)
+        case _:
+            return "error"
