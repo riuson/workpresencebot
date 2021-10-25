@@ -7,7 +7,7 @@ import user_handlers as handlers
 
 
 # function to handle errors occurred in the dispatcher
-def error(update, context):
+def error(update: Update, context: CallbackContext):
     update.message.reply_text('An error occurred')
 
 
@@ -27,7 +27,11 @@ def main():
     dispatcher.add_handler(CommandHandler("stats", handlers.stats))
     dispatcher.add_handler(CommandHandler("menu", handlers.menu))
     dispatcher.add_handler(CommandHandler("help", handlers.help))
+    dispatcher.add_handler(CommandHandler("came", handlers.came))
+    dispatcher.add_handler(CommandHandler("left", handlers.left))
+    dispatcher.add_handler(CommandHandler("stay", handlers.stay))
     dispatcher.add_handler(CallbackQueryHandler(handlers.button))
+    dispatcher.add_handler(MessageHandler(Filters.all, handlers.stay))
 
     # add an handler for errors
     dispatcher.add_error_handler(error)

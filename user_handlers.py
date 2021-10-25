@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
+from telegram.ext import CallbackContext  # , MessageHandler, Filters, Updater, CommandHandler, CallbackQueryHandler,
+from emoji import emojize
 import data_storage as storage
+
+
+# emoji:  https://www.webfx.com/tools/emoji-cheat-sheet/
 
 
 # type of log records
@@ -21,30 +25,101 @@ record_type_strings = {
 
 
 # function to handle the /start command
-def start(update, context) -> None:
-    first_name = update.message.chat.first_name
-    update.message.reply_text(f"Hi {first_name}, nice to meet you!")
+def start(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
+    # update.message.reply_text(f"Hi {first_name}, nice to meet you!")
+    update.message.chat.send_message(
+        f'Hello, <a href="tg://user?id={user_id}">{first_name}</a>',
+        parse_mode=ParseMode.HTML)
 
 
 # function to handle the /help command
-def help(update, context) -> None:
-    update.message.reply_text("""List of commands:
-/start - start bot.
-/help - this help.
-/menu - call main menu.
-/came_to_work - user came to work.
-/left_work - user left work.
-/stayed_at_home - user stayed at home.""")
+def help(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
+    update.message.chat.send_message(
+        f'''<a href="tg://user?id={user_id}">{first_name}</a>, list of commands:
+/start - Start bot.
+/help - Display help message.
+/menu - Display main menu.
+/stats - Display stats of users.
+/stay - User stayed at home.
+/came - User came to work.
+/left - User left work.''',
+        parse_mode=ParseMode.HTML)
+
+
+# commands for @BotFather:
+# stay - User stayed at home.
+# came - User came to work.
+# left - User left work.
+# start - Start bot.
+# help - Display help message.
+# menu - Display main menu.
+# stats - Display stats of users
+
+# function to handle the /stay command
+def stay(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
+    # update.message.reply_text(f"{first_name} stayed at home!")
+    # update.message.reply_html(
+    #    f'<a href="tg://user?id={user_id}">{user_name}</a> has left work!')
+    storage.update_record(
+        chat_id=update.message.chat.id,
+        user_id=user_id,
+        user_name=first_name,
+        time_stamp=update.message.date,
+        record_type=RecordType.StayedAtHome)
+    update.message.chat.send_message(
+        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :house: :thumbsup:', use_aliases=True),
+        parse_mode=ParseMode.HTML)
+
+
+# function to handle the /came command
+def came(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
+    # update.message.reply_text(f"{first_name} came to work!")
+    storage.update_record(
+        chat_id=update.message.chat.id,
+        user_id=user_id,
+        user_name=first_name,
+        time_stamp=update.message.date,
+        record_type=RecordType.CameToWork)
+    update.message.chat.send_message(
+        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :office: :thumbsup:', use_aliases=True),
+        parse_mode=ParseMode.HTML)
+
+
+# function to handle the /left command
+def left(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    first_name = update.message.from_user.first_name
+    # update.message.reply_text(f"{first_name} has left work home!")
+    storage.update_record(
+        chat_id=update.message.chat.id,
+        user_id=user_id,
+        user_name=first_name,
+        time_stamp=update.message.date,
+        record_type=RecordType.LeftWork)
+    update.message.chat.send_message(
+        emojize(f'<a href="tg://user?id={user_id}">{first_name}</a> :house: :thumbsup:', use_aliases=True),
+        parse_mode=ParseMode.HTML)
 
 
 # function to handle the /stats command
-def stats(update, context) -> None:
+def stats(update: Update, context: CallbackContext) -> None:
     msg = get_stats_formatted_for_chat(update.message.chat.id)
-    update.message.reply_html(msg)
+    # update.message.reply_html(msg)
+    update.message.chat.send_message(
+        emojize(msg, use_aliases=True),
+        parse_mode=ParseMode.HTML)
 
 
 # function to handle the /menu command
-def menu(update, context) -> None:
+def menu(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [
             InlineKeyboardButton("Came to work", callback_data=RecordType.CameToWork),
@@ -58,7 +133,7 @@ def menu(update, context) -> None:
 
 
 # function to handle buttons
-def button(update, context) -> None:
+def button(update: Update, context: CallbackContext) -> None:
     """Parses the CallbackQuery and updates the message text."""
     query = update.callback_query
 
@@ -86,6 +161,11 @@ def button(update, context) -> None:
         query.edit_message_text(text=msg)
 
 
+# echo test
+def echo(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text('sjdhahdjk')
+
+
 # format log record
 def format_record(record) -> str:
     # 0 - user_id, 1 - user_name, 2 - time_stamp, 3 - record_type
@@ -100,7 +180,7 @@ def format_record(record) -> str:
     #        msg += 'stayed at home'
     msg += record_type_strings[record[3]]
 
-    msg += f'\n{record[2]}'
+    msg += f'\n<i>{record[2]}</i>'
     return msg
 
 
@@ -116,9 +196,9 @@ def get_stats_formatted_for_chat(chat_id) -> str:
             home += format_record(record) + "\n"
     msg = ""
     if work != "":
-        msg = "<b>At work:</b>\n" + work
+        msg = "<b>At work</b> :office:\n" + work
     if home != "":
         if work != "":
             msg += "\n"
-        msg += "<b>At home:</b>\n" + home
+        msg += "<b>At home</b> :house:\n" + home
     return msg
