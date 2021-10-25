@@ -4,22 +4,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
 
-import sqlite3
-# CREATE TABLE records (
-#     id          INTEGER  PRIMARY KEY AUTOINCREMENT
-#                          UNIQUE
-#                          NOT NULL,
-#     chat_id     INTEGER  NOT NULL,
-#     user_id     INTEGER  NOT NULL,
-#     user_name   STRING,
-#     time_stamp  DATETIME NOT NULL,
-#     record_type INTEGER  NOT NULL,
-#     UNIQUE (
-#         chat_id,
-#         user_id
-#     )
-#     ON CONFLICT REPLACE
-# );
+import data_storage as storage
 
 # type of log records
 class RecordType:
@@ -64,7 +49,7 @@ def came_to_work(update, context):
     user_name = update.message.from_user.first_name
     update.message.reply_html(
         f'<a href="tg://user?id={user_id}">{user_name}</a> came to work!')
-    update_record(
+    storage.update_record(
         chat_id=update.message.chat.id,
         user_id=user_id,
         user_name=user_name,
@@ -78,7 +63,7 @@ def left_work(update, context):
     user_name = update.message.from_user.first_name
     update.message.reply_html(
         f'<a href="tg://user?id={user_id}">{user_name}</a> has left work!')
-    update_record(
+    storage.update_record(
         chat_id=update.message.chat.id,
         user_id=user_id,
         user_name=user_name,
@@ -92,7 +77,7 @@ def stayed_at_home(update, context):
     user_name = update.message.from_user.first_name
     update.message.reply_html(
         f'<a href="tg://user?id={user_id}">{user_name}</a> stayed at home!')
-    update_record(
+    storage.update_record(
         chat_id=update.message.chat.id,
         user_id=update.message.from_user.id,
         user_name=update.message.from_user.first_name,
@@ -153,7 +138,7 @@ def button(update, context) -> None:
         query.message.reply_html(msg)
     elif query.data.isdigit():
         type_str = record_type_strings[int(query.data)]
-        update_record(
+        storage.update_record(
             chat_id=query.message.chat.id,
             user_id=user_id,
             user_name=user_name,
@@ -161,27 +146,6 @@ def button(update, context) -> None:
             record_type=int(query.data))
         msg = f'{user_name}, you {type_str}'
         query.edit_message_text(text=msg)
-
-
-# get records for chat
-def get_records(chat_id):
-    connection = sqlite3.connect('presence_bot_records.sqlite3', check_same_thread=False)
-    cursor = connection.cursor()
-    cursor.execute('select user_id, user_name, time_stamp, record_type from records where chat_id = ? order by time_stamp desc', [chat_id])
-    table = cursor.fetchall()
-    connection.close()
-    return table
-
-
-# update record in table
-def update_record(chat_id, user_id, user_name, time_stamp, record_type):
-    connection = sqlite3.connect('presence_bot_records.sqlite3', check_same_thread=False)
-    cursor = connection.cursor()
-    cursor.execute(
-        'insert into records (chat_id, user_id, user_name, time_stamp, record_type) values (?, ?, ?, ?, ?)',
-        [chat_id, user_id, user_name, time_stamp, record_type])
-    connection.commit()
-    connection.close()
 
 
 # format log record
@@ -204,7 +168,7 @@ def format_record(record):
 
 # get stats for chat in formatted form
 def get_stats_formatted_for_chat(chat_id):
-    records = get_records(chat_id)
+    records = storage.get_records(chat_id)
     work = ""
     home = ""
     for record in records:
@@ -223,11 +187,14 @@ def get_stats_formatted_for_chat(chat_id):
 
 
 def main():
-    TOKEN = "<token>"
+    token = ""
+
+    with open('token.txt') as file_token:
+        token = file_token.readline()
 
     # create the updater, that will automatically create also a dispatcher and a queue to 
-    # make them dialoge
-    updater = Updater(TOKEN, use_context=True)
+    # make them dialogue
+    updater = Updater(token, use_context=True)
     dispatcher = updater.dispatcher
 
     # add handlers for start and help commands
