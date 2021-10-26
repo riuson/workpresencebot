@@ -30,11 +30,12 @@ Vladimir came to work
 ## Регистрация команд в @BotFather:
 
 ```raw
-stay - User stayed at home.
 came - User came to work.
 left - User left work.
+stay - User stayed at home.
 start - Start bot.
 help - Display help message.
 menu - Display main menu.
-stats - Display stats of users
+stats - Display stats of users.
+poll - Create alarm poll.
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMode, Poll
 from telegram.ext import CallbackContext  # , MessageHandler, Filters, Updater, CommandHandler, CallbackQueryHandler,
 from emoji import emojize
 import data_storage as storage
@@ -122,13 +122,28 @@ def menu(update: Update, context: CallbackContext) -> None:
             InlineKeyboardButton("Left work", callback_data=RecordType.LeftWork),
             InlineKeyboardButton("Stayed at home", callback_data=RecordType.StayedAtHome),
         ],
-        [InlineKeyboardButton("Display stats", callback_data='stats')],
+        [
+            InlineKeyboardButton("Display stats", callback_data='stats'),
+            InlineKeyboardButton("Create alarm poll", callback_data='poll'),
+        ],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.chat.send_message(
         f'<a href="tg://user?id={user_id}">{first_name}</a>, please choose one option:',
         parse_mode=ParseMode.HTML,
         reply_markup=reply_markup)
+
+
+# function to handle the /poll command
+def poll(update: Update, context: CallbackContext) -> None:
+    update.message.chat.send_poll(
+        question='Do you leave a work?',
+        is_anonymous=False,
+        explanation='FIRE ALARM!',
+        options=['Yes', 'No'],
+        type=Poll.REGULAR,
+        open_period=None,
+        correct_option_id=0)
 
 
 # function to handle buttons
@@ -150,6 +165,17 @@ def button(update: Update, context: CallbackContext) -> None:
                 text=msg,
                 parse_mode=ParseMode.HTML,
                 reply_markup=None)
+        case 'poll':
+            query.message.delete()
+            query.message.chat.send_poll(
+                question='Do you leave a work?',
+                is_anonymous=False,
+                explanation='FIRE ALARM!',
+                options=['Yes', 'No'],
+                type=Poll.REGULAR,
+                open_period=None,
+                correct_option_id=0)
+
         case '...':
             pass
         case _:

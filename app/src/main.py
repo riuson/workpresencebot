@@ -28,6 +28,7 @@ def main():
     dispatcher.add_handler(CommandHandler("came", handlers.came))
     dispatcher.add_handler(CommandHandler("left", handlers.left))
     dispatcher.add_handler(CommandHandler("stay", handlers.stay))
+    dispatcher.add_handler(CommandHandler("poll", handlers.poll))
     dispatcher.add_handler(CallbackQueryHandler(handlers.button))
     dispatcher.add_handler(MessageHandler(Filters.all, handlers.stay))
 
