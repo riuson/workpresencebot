@@ -1,3 +1,6 @@
-token.txt
+app/src/token.txt
 .idea/
 venv/
+__pycache__/
+*.sqlite
+*.sqlite3

@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  workpresence_bot:
+    image: riuson/workpresencebot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DBPATH=/code/data/presence_bot_records.sqlite3
+      - TOKEN=<secret_token>
+    volumes:
+      - ./data:/code/data
+    restart: always
+    stop_grace_period: 2m

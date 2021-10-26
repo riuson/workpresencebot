@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-# work_presence_bot.py
+# main.py
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
 import user_handlers as handlers
-
+import os
 
 # function to handle errors occurred in the dispatcher
 def error(update: Update, context: CallbackContext):
@@ -12,10 +12,8 @@ def error(update: Update, context: CallbackContext):
 
 
 def main():
-    token = ""
-
-    with open('token.txt') as file_token:
-        token = file_token.readline()
+    # get token from env
+    token = os.environ['TOKEN']
 
     # create the updater, that will automatically create also a dispatcher and a queue to 
     # make them dialogue

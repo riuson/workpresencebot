@@ -26,3 +26,15 @@ Vlad came to work
 Vladimir came to work
 2021-10-24 13:01:35+00:00
 ```
+
+## Регистрация команд в @BotFather:
+
+```raw
+stay - User stayed at home.
+came - User came to work.
+left - User left work.
+start - Start bot.
+help - Display help message.
+menu - Display main menu.
+stats - Display stats of users
+```
