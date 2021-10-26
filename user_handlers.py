@@ -4,9 +4,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, ParseMo
 from telegram.ext import CallbackContext  # , MessageHandler, Filters, Updater, CommandHandler, CallbackQueryHandler,
 from emoji import emojize
 import data_storage as storage
-
+import datetime, time
+import pytz
 
 # emoji:  https://www.webfx.com/tools/emoji-cheat-sheet/
+user_timezone = "Asia/Yekaterinburg"
 
 
 # type of log records
@@ -183,8 +185,25 @@ def format_record(record) -> str:
             msg += 'has left work'
         case RecordType.StayedAtHome:
             msg += 'stayed at home'
+    timestamp = datetime.datetime.fromisoformat(str(record[2]))
+    timezone_user = pytz.timezone(user_timezone)  # datetime.timezone(datetime.timedelta(hours=user_timezone), 'local')
+    timezone_utc = pytz.timezone("UTC")
 
-    msg += f'\n<i>{record[2]}</i>'
+    timestamp_user = timestamp.astimezone(timezone_user)
+    timestamp_user_str = timestamp_user.strftime('%Y-%m-%d %H:%M:%S')
+
+    now = datetime.datetime.now(timezone_user)
+
+    if timestamp_user.date() == now.date():
+        timestamp_user_str = timestamp_user.strftime('%H:%M')
+    elif timestamp_user.date() == (now.date() - datetime.timedelta(days=1)):
+        timestamp_user_str = 'yesterday'
+    elif timestamp_user.date() < (now.date() - datetime.timedelta(days=1)):
+        timestamp_user_str = 'earlier'
+    else:
+        timestamp_user_str = 'time traveller!'
+
+    msg += f'\n<i>{timestamp_user_str}</i>'
     return msg
 
 
