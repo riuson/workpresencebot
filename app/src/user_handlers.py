@@ -224,9 +224,10 @@ def get_stats_formatted_for_chat(chat_id) -> str:
         if work != "":
             msg += "\n"
         msg += "<b>At home</b> :house:\n" + home
-    return emojize(
-        msg,
-        use_aliases=True)
+
+    if msg == "":
+        msg = "No records was found!"
+    return msg
 
 
 # get user confirmation message in html format (with emoji)
